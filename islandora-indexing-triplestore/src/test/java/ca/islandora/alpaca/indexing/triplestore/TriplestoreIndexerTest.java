@@ -65,80 +65,9 @@ public class TriplestoreIndexerTest extends CamelBlueprintTestSupport {
     @Override
     protected Properties useOverridePropertiesWithPropertiesComponent() {
         final Properties props = new Properties();
-        props.put("input.stream", "seda:foo");
+        props.put("index.stream", "seda:foo");
+        props.put("delete.stream", "seda:bar");
         return props;
-    }
-
-    @Test
-    public void testRouterWithDeleteEvent() throws Exception {
-        final String route = "IslandoraTriplestoreIndexerRouter";
-        context.getRouteDefinition(route).adviceWith(context, new AdviceWithRouteBuilder() {
-            @Override
-            public void configure() throws Exception {
-                replaceFromWith("direct:start");
-                mockEndpointsAndSkip("direct:triplestore.*");
-            }
-        });
-        context.start();
-
-        getMockEndpoint("mock:direct:triplestore.delete").expectedMessageCount(1);
-        getMockEndpoint("mock:direct:triplestore.index").expectedMessageCount(0);
-
-        template.sendBody(
-                IOUtils.toString(loadResourceAsStream("delete-event.json"), "UTF-8"));
-
-        assertMockEndpointsSatisfied();
-    }
-
-    @Test
-    public void testRouterWithNonDeleteEvent() throws Exception {
-        final String route = "IslandoraTriplestoreIndexerRouter";
-        context.getRouteDefinition(route).adviceWith(context, new AdviceWithRouteBuilder() {
-            @Override
-            public void configure() throws Exception {
-                replaceFromWith("direct:start");
-                mockEndpointsAndSkip("direct:triplestore.*");
-                mockEndpointsAndSkip("direct:retrieve.resource");
-            }
-        });
-        context.start();
-
-        getMockEndpoint("mock:direct:triplestore.delete").expectedMessageCount(0);
-        getMockEndpoint("mock:direct:triplestore.index").expectedMessageCount(1);
-
-        template.sendBody(
-                IOUtils.toString(loadResourceAsStream("create-event.json"), "UTF-8")
-        );
-
-        assertMockEndpointsSatisfied();
-    }
-
-    @Test
-    public void testParseEvent() throws Exception {
-        final String route = "IslandoraTriplestoreIndexerParseEvent";
-        context.getRouteDefinition(route).adviceWith(context, new AdviceWithRouteBuilder() {
-            @Override
-            public void configure() throws Exception {
-                replaceFromWith("direct:start");
-                mockEndpointsAndSkip("*");
-            }
-        });
-        context.start();
-
-        final Exchange exchange = template.send(xchange ->
-            xchange.getIn().setBody(IOUtils.toString(loadResourceAsStream("create-event.json"), "UTF-8"))
-        );
-
-        this.assertPredicate(
-            exchangeProperty("uri").isEqualTo("http://localhost:8000/fedora_resource/1"),
-            exchange,
-            true
-        );
-        this.assertPredicate(
-            exchangeProperty("action").isEqualTo("Create"),
-            exchange,
-            true
-        );
     }
 
     @Test
@@ -165,7 +94,7 @@ public class TriplestoreIndexerTest extends CamelBlueprintTestSupport {
         );
 
         template.send(exchange -> {
-            exchange.setProperty("uri", uri);
+            exchange.setProperty("IslandoraUri", uri);
             exchange.getIn().setBody(IOUtils.toString(loadResourceAsStream("delete-event.json"), "UTF-8"));
         });
 
@@ -191,8 +120,8 @@ public class TriplestoreIndexerTest extends CamelBlueprintTestSupport {
         endpoint.expectedHeaderReceived("Authentication", "some_nifty_token");
 
         template.send(exchange -> {
-            exchange.setProperty("uri", "http://localhost:8000/fedora_resource/1");
-            exchange.getIn().setHeader("Authentication", "some_nifty_token");
+            exchange.setProperty("IslandoraUri", "http://localhost:8000/fedora_resource/1");
+            exchange.setProperty("IslandoraAuthentication", "some_nifty_token");
         });
 
         assertMockEndpointsSatisfied();
@@ -236,7 +165,7 @@ public class TriplestoreIndexerTest extends CamelBlueprintTestSupport {
         }
 
         template.send(exchange -> {
-            exchange.setProperty("uri", uri);
+            exchange.setProperty("IslandoraUri", uri);
             exchange.getIn().setHeader(CONTENT_TYPE, "application/ld+json");
             exchange.getIn().setBody(IOUtils.toString(loadResourceAsStream("resource.rdf"), "UTF-8"));
         });

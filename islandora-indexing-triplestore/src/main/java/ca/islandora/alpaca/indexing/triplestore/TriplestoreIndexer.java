@@ -23,7 +23,6 @@ import static org.apache.camel.LoggingLevel.INFO;
 import static org.fcrepo.camel.FcrepoHeaders.FCREPO_URI;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import com.jayway.jsonpath.JsonPathException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.Exchange;
 import org.fcrepo.camel.processor.SparqlUpdateProcessor;
@@ -48,40 +47,23 @@ public class TriplestoreIndexer extends RouteBuilder {
             .log(
                 ERROR,
                 LOGGER,
-                "Error indexing ${property.uri} in triplestore: ${exception.message}\n\n${exception.stacktrace}"
+                "Error indexing ${exchangeProperty['IslandoraUri']} in triplestore: " +
+                    "${exception.message}\n\n${exception.stacktrace}"
             );
 
-        // Main router.
-        from("{{input.stream}}")
-            .routeId("IslandoraTriplestoreIndexerRouter")
-              .to("direct:parse.event")
-              .choice()
-                .when(exchangeProperty("action").isEqualTo("Delete"))
-                  .to("direct:triplestore.delete")
-                .otherwise()
-                  .to("direct:retrieve.resource")
-                  .to("direct:triplestore.index");
-
-        // Extracts info using jsonpath and stores it as properties on the exchange.
-        from("direct:parse.event")
-            .routeId("IslandoraTriplestoreIndexerParseEvent")
-              // Custom exception handler.  Doesn't retry if event is malformed.
-              .onException(JsonPathException.class)
-                .maximumRedeliveries(0)
-                .handled(true)
-                .log(
-                   ERROR,
-                   LOGGER,
-                   "Error extracting properties from event: ${exception.message}\n\n${exception.stacktrace}"
-                )
-                .end()
-              .setProperty("action").jsonpath("$.type")
-              .setProperty("uri").jsonpath("$.object");
+        // Converts the resource to a SPARQL update query, POSTing it to the triplestore.
+        from("{{index.stream}}")
+            .routeId("IslandoraTriplestoreIndexerIndex")
+              .to("direct:retrieve.resource")
+              .setHeader(FCREPO_URI, simple("${exchangeProperty['IslandoraUri']}?_format=jsonld"))
+              .process(new SparqlUpdateProcessor())
+              .log(INFO, LOGGER, "Indexing ${exchangeProperty['IslandoraUri']} in triplestore")
+              .to("{{triplestore.baseUrl}}");
 
         // POSTs a SPARQL delete query for all triples with subject == uri.
-        from("direct:triplestore.delete")
+        from("{{delete.stream}}")
             .routeId("IslandoraTriplestoreIndexerDelete")
-              .setHeader(FCREPO_URI, simple("${property.uri}?_format=jsonld"))
+              .setHeader(FCREPO_URI, simple("${exchangeProperty['IslandoraUri']}?_format=jsonld"))
               .process(new SparqlDeleteProcessor())
               .log(INFO, LOGGER, "Deleting ${property.uri} in triplestore")
               .to("{{triplestore.baseUrl}}");
@@ -90,16 +72,8 @@ public class TriplestoreIndexer extends RouteBuilder {
         from("direct:retrieve.resource")
             .routeId("IslandoraTriplestoreIndexerRetrieveResource")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-                .setHeader("Authentication", simple("${headers['Authentication']}"))
-                .toD("${property.uri}?_format=jsonld");
-
-        // Converts the resource to a SPARQL update query, POSTing it to the triplestore.
-        from("direct:triplestore.index")
-            .routeId("IslandoraTriplestoreIndexerIndex")
-              .setHeader(FCREPO_URI, simple("${property.uri}?_format=jsonld"))
-              .process(new SparqlUpdateProcessor())
-              .log(INFO, LOGGER, "Indexing ${property.uri} in triplestore")
-              .to("{{triplestore.baseUrl}}");
+                .setHeader("Authentication", simple("${exchangeProperty['IslandoraAuthentication']}"))
+                .toD("${exchangeProperty['IslandoraUri']}?_format=jsonld");
 
     }
 }

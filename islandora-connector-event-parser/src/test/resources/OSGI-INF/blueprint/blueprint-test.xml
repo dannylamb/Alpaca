@@ -8,12 +8,11 @@
        http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
 
   <!-- OSGI blueprint property placeholder -->
-  <cm:property-placeholder id="properties" persistent-id="ca.islandora.alpaca.indexing.triplestore" update-strategy="reload" >
+  <cm:property-placeholder id="properties" persistent-id="ca.islandora.alpaca.connector.event.parser" update-strategy="reload" >
     <cm:default-properties>
       <cm:property name="error.maxRedeliveries" value="5"/>
-      <cm:property name="index.stream" value="activemq:queue:islandora-indexing-triplestore-index"/>
-      <cm:property name="delete.stream" value="activemq:queue:islandora-indexing-triplestore-delete"/>
-      <cm:property name="triplestore.baseUrl" value="http://localhost:8080/bigdata/namespace/kb/sparql"/>
+      <cm:property name="input.stream" value="activemq:queue:islandora-connector-event-parser"/>
+      <cm:property name="output.stream" value="activemq:queue:islandora-connector-broadcast"/>
       <cm:property name="jms.brokerUrl" value="tcp://localhost:61616"/>
     </cm:default-properties>
   </cm:property-placeholder>
@@ -22,11 +21,8 @@
     <property name="brokerURL" value="${jms.brokerUrl}"/>
   </bean>
 
-  <bean id="http" class="org.apache.camel.component.http4.HttpComponent"/>
-  <bean id="https" class="org.apache.camel.component.http4.HttpComponent"/>
-
-  <camelContext id="IslandoraTriplestoreIndexer" xmlns="http://camel.apache.org/schema/blueprint">
-    <package>ca.islandora.alpaca.indexing.triplestore</package>
+  <camelContext id="IslandoraConnectorEventParser" xmlns="http://camel.apache.org/schema/blueprint">
+    <package>ca.islandora.alpaca.connector.event.parser</package>
   </camelContext>
 
 </blueprint>
