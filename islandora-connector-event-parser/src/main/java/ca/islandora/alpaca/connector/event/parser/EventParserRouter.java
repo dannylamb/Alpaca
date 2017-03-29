@@ -55,7 +55,7 @@ public class EventParserRouter extends RouteBuilder {
                 .end()
               .setProperty("IslandoraAction").jsonpath("$.type")
               .setProperty("IslandoraUri").jsonpath("$.object")
-              .setProperty("IslandoraAuthentication").simple("${headers['Authentication']}")
+              .setProperty("IslandoraAuthorization").simple("${headers['Authorization']}")
               .to("{{output.stream}}");
     }
 }

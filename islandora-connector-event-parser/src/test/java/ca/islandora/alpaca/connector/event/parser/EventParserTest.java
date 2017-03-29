@@ -80,7 +80,7 @@ public class EventParserTest extends CamelBlueprintTestSupport {
 
         final Exchange exchange = template.send(xchange -> {
             xchange.getIn().setBody(IOUtils.toString(loadResourceAsStream("create-event.json"), "UTF-8"));
-            xchange.getIn().setHeader("Authentication", "some_token");
+            xchange.getIn().setHeader("Authorization", "some_token");
         });
 
         this.assertPredicate(
@@ -94,7 +94,7 @@ public class EventParserTest extends CamelBlueprintTestSupport {
             true
         );
         this.assertPredicate(
-            exchangeProperty("IslandoraAuthentication").isEqualTo("some_token"),
+            exchangeProperty("IslandoraAuthorization").isEqualTo("some_token"),
             exchange,
             true
         );

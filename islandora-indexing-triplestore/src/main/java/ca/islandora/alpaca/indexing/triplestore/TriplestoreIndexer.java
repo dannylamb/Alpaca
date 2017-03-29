@@ -71,8 +71,9 @@ public class TriplestoreIndexer extends RouteBuilder {
         // Retrieves the resource from Drupal.
         from("direct:retrieve.resource")
             .routeId("IslandoraTriplestoreIndexerRetrieveResource")
+                .removeHeaders("*")
                 .setHeader(Exchange.HTTP_METHOD, constant("GET"))
-                .setHeader("Authentication", simple("${exchangeProperty['IslandoraAuthentication']}"))
+                .setHeader("Authorization", simple("${exchangeProperty['IslandoraAuthorization']}"))
                 .toD("${exchangeProperty['IslandoraUri']}?_format=jsonld");
 
     }
