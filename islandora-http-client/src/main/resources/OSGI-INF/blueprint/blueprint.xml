@@ -10,6 +10,7 @@
   <cm:property-placeholder id="properties" persistent-id="ca.islandora.alpaca.http.client" update-strategy="reload" >
     <cm:default-properties>
       <cm:property name="token.value" value="islandora"/>
+      <cm:property name="www.authenticate.value" value="Basic realm=&quot;fcrepo&quot;"/>
     </cm:default-properties>
   </cm:property-placeholder>
   
@@ -17,10 +18,15 @@
     <service-properties>
       <entry key="osgi.jndi.service.name" value="claw/httpClient"/>
     </service-properties>
-    <bean class="ca.islandora.alpaca.http.client.StaticTokenRequestInterceptor" factory-method="defaultClient">
+    <bean class="ca.islandora.alpaca.http.client.DefaultClientFactory" factory-method="create">
       <argument>
         <bean class="ca.islandora.alpaca.http.client.StaticTokenRequestInterceptor">
   	      <property name="token" value="${token.value}"/>
+        </bean>
+      </argument>
+      <argument>
+        <bean class="ca.islandora.alpaca.http.client.WWWAuthenticateRequestInterceptor">
+  	      <property name="value" value="${www.authenticate.value}"/>
         </bean>
       </argument>
     </bean>

@@ -28,46 +28,46 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
 
 /**
- * Adds a single authentication header to any request that does not
- * already have at least one authentication header.
+ * Adds a single WWW-Authenticate header to any request that does not
+ * already have at least one.
  * 
- * @author ajs6f
+ * @author dannylamb 
  *
  */
-public class StaticTokenRequestInterceptor implements HttpRequestInterceptor {
+public class WWWAuthenticateRequestInterceptor implements HttpRequestInterceptor {
 
-    public static final String AUTH_HEADER = "Authorization";
+    public static final String WWW_AUTH_HEADER = "WWW-Authenticate";
 
     private Header header;
 
     /**
      * Default constructor
      */
-    public StaticTokenRequestInterceptor() {
+    public WWWAuthenticateRequestInterceptor() {
     }
 
     /**
-     * @param token the authentication token to use
+     * @param value the www-authenticate value to use
      */
-    public StaticTokenRequestInterceptor(final String token) {
-        this.header = makeHeader(token);
+    public WWWAuthenticateRequestInterceptor(final String value) {
+        this.header = makeHeader(value);
     }
 
     /**
-     * @param token the authentication token to use
+     * @param value the www-authenticate value to use
      */
-    public void setToken(final String token) {
-        this.header = makeHeader(token);
+    public void setValue(final String value) {
+        this.header = makeHeader(value);
     }
 
-    private static Header makeHeader(final String token) {
-        return new BasicHeader(AUTH_HEADER, "Bearer " + requireNonNull(token, "Token must not be null!"));
+    private static Header makeHeader(final String value) {
+        return new BasicHeader(WWW_AUTH_HEADER, requireNonNull(value, "WWW-Authenticate value must be non-null!"));
     }
 
     @Override
     public void process(final HttpRequest request, final HttpContext context) {
-        // we do not inject if auth headers present
-        if (request.getFirstHeader(AUTH_HEADER) == null) {
+        // we do not inject if www-authenticate headers present
+        if (request.getFirstHeader(WWW_AUTH_HEADER) == null) {
             request.addHeader(header);
         }
     }
