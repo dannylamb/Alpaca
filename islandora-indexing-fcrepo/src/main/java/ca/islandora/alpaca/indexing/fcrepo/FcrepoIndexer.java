@@ -195,8 +195,14 @@ public class FcrepoIndexer extends RouteBuilder {
                 // Extract relevant data from the event.
                 .setProperty("event").simple("${body}")
                 .setProperty("uuid").simple("${exchangeProperty.event.object.id.replaceAll(\"urn:uuid:\",\"\")}")
-                .setProperty("drupal").simple("${exchangeProperty.event.object.url[0].href}")
-                .setProperty("fedora").simple("${exchangeProperty.event.attachment.content.fedoraUri}")
+                .setProperty("jsonUrl").simple("${exchangeProperty.event.object.url[1].href}")
+
+                // Get the drupal url.
+                .to("direct:getDrupalUrl")
+
+                // Get the fedora url.
+                .transform().jsonpath("$.uri[0].value")
+                .setProperty("fedora").simple("${exchangeProperty.event.attachment.content.fedoraBaseUrl}${body.split('://')[1]}")
 
                 // Prepare the message.
                 .removeHeaders("*", "Authorization")
@@ -218,7 +224,10 @@ public class FcrepoIndexer extends RouteBuilder {
                 // Extract relevant data from the event.
                 .setProperty("event").simple("${body}")
                 .setProperty("uuid").simple("${exchangeProperty.event.object.id.replaceAll(\"urn:uuid:\",\"\")}")
-                .setProperty("drupal").simple("${exchangeProperty.event.object.url[0].href}")
+                .setProperty("jsonUrl").simple("${exchangeProperty.event.object.url[1].href}")
+
+                // Get the drupal url.
+                .to("direct:getDrupalUrl")
 
                 // Prepare the message.
                 .removeHeaders("*", "Authorization")
@@ -229,5 +238,18 @@ public class FcrepoIndexer extends RouteBuilder {
                 // Pass it to milliner.
                 .toD(getMillinerBaseUrl() + "external/${exchangeProperty.uuid}?connectionClose=true");
 
+        from("direct:getDrupalUrl")
+                .routeId("FcrepoIndexerGetDrupalUrl")
+
+                // Get file url from its REST endpoint.
+                .removeHeaders("*", "Authorization")
+                .setHeader(Exchange.HTTP_METHOD, constant("GET"))
+                .setBody(simple("${null}"))
+                .toD("${exchangeProperty.jsonUrl}&connectionClose=true")
+                .convertBodyTo(String.class)
+
+                // Extract the file path from the file json
+                .setProperty("drupalPath").jsonpath("$.uri[0].url")
+                .setProperty("drupal").simple("${exchangeProperty.event.attachment.content.drupalBaseUrl}${exchangeProperty.drupalPath}");
     }
 }

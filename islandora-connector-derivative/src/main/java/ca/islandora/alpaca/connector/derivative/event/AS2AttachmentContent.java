@@ -28,18 +28,33 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class AS2AttachmentContent {
 
     /**
-     * @return  Source uri
+     * @return  Source path
      */
-    @JsonProperty(value = "source_uri")
-    public String getSourceUri() {
-        return sourceUri;
+    @JsonProperty(value = "file_json_url")
+    public String getFileJsonUrl() {
+        return fileJsonUrl;
     }
 
     /**
-     * @param   sourceUri    Source uri
+     * @param   fileJsonUrl    Source path
      */
-    public void setSourceUri(final String sourceUri) {
-        this.sourceUri = sourceUri;
+    public void setFileJsonUrl(final String fileJsonUrl) {
+        this.fileJsonUrl = fileJsonUrl;
+    }
+
+    /**
+     * @return  Drupal base url 
+     */
+    @JsonProperty(value = "drupal_base_url")
+    public String getDrupalBaseUrl() {
+        return drupalBaseUrl;
+    }
+
+    /**
+     * @param   drupalBaseUrl    Drupal base url
+     */
+    public void setDrupalBaseUrl(final String drupalBaseUrl) {
+        this.drupalBaseUrl = drupalBaseUrl;
     }
 
     /**
@@ -100,7 +115,8 @@ public class AS2AttachmentContent {
         this.fileUploadUri = fileUploadUri;
     }
 
-    private String sourceUri;
+    private String fileJsonUrl;
+    private String drupalBaseUrl;
     private String destinationUri;
     private String mimetype;
     private String args;

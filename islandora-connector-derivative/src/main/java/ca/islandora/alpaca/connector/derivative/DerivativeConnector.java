@@ -22,6 +22,7 @@ import static org.apache.camel.LoggingLevel.ERROR;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import ca.islandora.alpaca.connector.derivative.event.AS2Event;
+import com.jayway.jsonpath.JsonPathException;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.Exchange;
 import org.apache.camel.model.dataformat.JsonLibrary;
@@ -36,8 +37,18 @@ public class DerivativeConnector extends RouteBuilder {
 
     @Override
     public void configure() {
-        // Global exception handler for the indexer.
-        // Just logs after retrying X number of times.
+        // Global exception handlers for the indexer.
+
+        // Don't retry if you can't parse the json.
+        onException(JsonPathException.class)
+            .maximumRedeliveries(0)
+            .log(
+                ERROR,
+                LOGGER,
+                "Error extracting file path from JSON: ${exception.message}\n\n${exception.stacktrace}"
+            );
+
+        // Just logs after retrying X number of times for everything else.
         onException(Exception.class)
             .maximumRedeliveries("{{error.maxRedeliveries}}")
             .log(
@@ -47,6 +58,7 @@ public class DerivativeConnector extends RouteBuilder {
                 "${exception.message}\n\n${exception.stacktrace}"
             );
 
+        // The route.
         from("{{in.stream}}")
             .routeId("IslandoraConnectorDerivative")
 
@@ -55,13 +67,22 @@ public class DerivativeConnector extends RouteBuilder {
 
             // Stash the event on the exchange.
             .setProperty("event").simple("${body}")
+            .setProperty("jsonUrl").simple("${exchangeProperty.event.attachment.content.fileJsonUrl}")
 
-            // Make the Crayfish request.
+            // Get file url from its REST endpoint.
             .removeHeaders("*", "Authorization")
             .setHeader(Exchange.HTTP_METHOD, constant("GET"))
+            .setBody(simple("${null}"))
+            .toD("${exchangeProperty.jsonUrl}&connectionClose=true")
+
+            // Extract the file path from the file json
+            .transform().jsonpath("$.uri[0].url")
+            .setProperty("drupalUrl").simple("${exchangeProperty.event.attachment.content.drupalBaseUrl}${body}")
+            
+            // Make the Crayfish request.
             .setHeader("Accept", simple("${exchangeProperty.event.attachment.content.mimetype}"))
             .setHeader("X-Islandora-Args", simple("${exchangeProperty.event.attachment.content.args}"))
-            .setHeader("Apix-Ldp-Resource", simple("${exchangeProperty.event.attachment.content.sourceUri}"))
+            .setHeader("Apix-Ldp-Resource", simple("${exchangeProperty.drupalUrl}"))
             .setBody(simple("${null}"))
             .to("{{derivative.service.url}}?connectionClose=true")
 

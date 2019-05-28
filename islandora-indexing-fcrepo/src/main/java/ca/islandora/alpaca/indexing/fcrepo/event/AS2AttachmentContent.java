@@ -28,18 +28,33 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class AS2AttachmentContent {
 
     /**
-     * @return Fedora uri
+     * @return  Fedora base url 
      */
-    @JsonProperty(value = "fedora_uri")
-    public String getFedoraUri() {
-        return fedoraUri;
+    @JsonProperty(value = "fedora_base_url")
+    public String getFedoraBaseUrl() {
+        return fedoraBaseUrl;
     }
 
     /**
-     * @param   fedoraUri    Fedora uri
+     * @param   fedoraBaseUrl    Fedora base url
      */
-    public void setFedoraUri(final String fedoraUri) {
-        this.fedoraUri = fedoraUri;
+    public void setFedoraBaseUrl(final String fedoraBaseUrl) {
+        this.fedoraBaseUrl = fedoraBaseUrl;
+    }
+
+    /**
+     * @return  Drupal base url 
+     */
+    @JsonProperty(value = "drupal_base_url")
+    public String getDrupalBaseUrl() {
+        return drupalBaseUrl;
+    }
+
+    /**
+     * @param   drupalBaseUrl    Drupal base url
+     */
+    public void setDrupalBaseUrl(final String drupalBaseUrl) {
+        this.drupalBaseUrl = drupalBaseUrl;
     }
 
     /**
@@ -57,7 +72,8 @@ public class AS2AttachmentContent {
         this.sourceField = sourceField;
     }
 
-    private String fedoraUri;
+    private String fedoraBaseUrl;
+    private String drupalBaseUrl;
     private String sourceField;
 
 }
